@@ -1,13 +1,12 @@
 // ==UserScript==
 // @name         imgsrc download
-// @namespace    http://imgsrc.ru/
-// @version      2019.06.21
+// @namespace    http://tampermonkey.net/
+// @version      2019.07.27
 // @description  Download imgsrc.ru with ctrl+D
 // @author       You
 // @match        http://imgsrc.ru/*
 // @match        https://imgsrc.ru/*
 // @grant        none
-// @downloadURL none
 // ==/UserScript==
 
 (function() {
@@ -20,8 +19,9 @@
             try {
                 let album = window.location.href.match(/^https?:\/\/imgsrc.ru\/main\/tape.php\?ad=\d+\&.*#(\d+_next)/)
                 if (album) {
+                    let picID = album[1]
                     console.log(Date().toString() + ": Page is view-all with #id")
-                    source = document.getElementById(album[1]).parentElement.getElementsByTagName("img")[0].src;
+                    source = document.getElementById(picID).nextElementSibling.getElementsByTagName("img")[0].src;
                 } else if (window.location.href.match(/^https?:\/\/imgsrc.ru\/[\w\_\-\.]+\/a?\d+.html/)) {
                     console.log(Date().toString() + ": Page is album")
                     source = document.getElementsByClassName("big")[0].src;
@@ -51,8 +51,9 @@
              try {
                 let album = window.location.href.match(/^https?:\/\/imgsrc.ru\/main\/tape.php\?ad=\d+\&.*#(\d+_next)/)
                 if (album) {
-                    console.log(Date().toString() + ": Page is view-all with #id")
-                    source = document.getElementById(album[1]).parentElement.querySelector("a[href]").href
+                    let picID = album[1]
+                    console.log(Date().toString() + ": Page is view-all with #id" + picID)
+                    source = document.getElementById(picID).nextElementSibling.href
                 } else if (window.location.href.match(/^https?:\/\/imgsrc.ru\/main\/tape.php\?ad=\d+\&/)) {
                     console.log(Date().toString() + ": Page is view-all without #id")
                     source = document.getElementsByClassName("big")[0].parentElement.href;
