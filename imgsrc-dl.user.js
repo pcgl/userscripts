@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgsrc download
 // @namespace    lordlolicon
-// @version      2019.12.10
+// @version      2019.12.19
 // @description  Download imgsrc.ru with ctrl+D
 // @author       Anonymous
 // @match        http://imgsrc.ru/*
@@ -10,7 +10,7 @@
 // @downloadURL none
 // ==/UserScript==
 
-const imgsrcExtensionVersion = "2019.12.10b"
+const imgsrcExtensionVersion = "2019.12.19a"
 
 function logMessage(msg) {
     console.log(`${new Date().toLocaleTimeString('en-us', {hour12: false})}: ${msg}`)
@@ -44,7 +44,7 @@ class KeyPressEvent {
     isEnterKey() {
         return this.e.keyCode == 13
     }
-    
+
     log() {
         console.log(
             `${new Date().toLocaleTimeString('en-us', {hour12: false})}: ` +
@@ -161,14 +161,22 @@ class HistoryStack {
 (function() {
     'use strict';
 
+    if (window.imgsrcLoaded) {
+        console.log("Aborted loading extension version " + imgsrcExtensionVersion);
+        return; // Detect multiple versions and abort if already loaded.
+    } else {
+        window.imgsrcLoaded = true;
+    }
+
     console.log("Loaded extension version " + imgsrcExtensionVersion);
     let loadedPage = new ImgsrcPage();
     loadedPage.log();
     var anchorMoved=false;
 
+    /* Make sure big images don't go off screen */
     document.head.innerHTML += "<style>img.big{max-height: 100vh !important}</style>"
 
-    if (loadedPage.isSearch) {
+    if (loadedPage.isSearch) { // Transform Search page to grid view and filter
         logMessage("Setting search grid css")
         document.head.innerHTML += "<style>.tdd td {display:inline-flex; display:flex}" +
             ".tdd tbody {display:flex; max-width:100vw; flex-wrap:wrap}" +
@@ -190,7 +198,7 @@ class HistoryStack {
         let highlight = [/pant(ie|y)[^h]/i, /upskirt/i, /upshort/i, /\b(summer)?camp(ing|ers?)?\b/i, /\bwet/i, /\bpee/i, /\byt/i, /youtube/i, /\boops/i,
                         /hidden/i, /(web|spy|ip|security)cam/i, /cam(girl|whore|slut)s?/i, /\bspy/i];
 
-        let authorBlacklist = [/conrad052/i, /spyonboyz/i, /otismeyer/i, /dad3boys/i]        
+        let authorBlacklist = [/conrad052/i, /spyonboyz/i, /otismeyer/i, /dad3boys/i, /ducman4988/i]
         let authorHighlight = [/pant(ie|y)[^h]/i, /upskirt/i]
 
         logMessage("Begin blacklisting")
