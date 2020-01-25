@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgsrc download
 // @namespace    lordlolicon
-// @version      2019.12.19
+// @version      2020.01.24
 // @description  Download imgsrc.ru with ctrl+D
 // @author       Anonymous
 // @match        http://imgsrc.ru/*
@@ -10,7 +10,7 @@
 // @downloadURL none
 // ==/UserScript==
 
-const imgsrcExtensionVersion = "2019.12.19a"
+const imgsrcExtensionVersion = "2020.01.24a"
 
 function logMessage(msg) {
     console.log(`${new Date().toLocaleTimeString('en-us', {hour12: false})}: ${msg}`)
@@ -44,7 +44,7 @@ class KeyPressEvent {
     isEnterKey() {
         return this.e.keyCode == 13
     }
-
+    
     log() {
         console.log(
             `${new Date().toLocaleTimeString('en-us', {hour12: false})}: ` +
@@ -61,7 +61,7 @@ class KeyPressEvent {
 
 class ImgsrcPage {
     constructor() {
-        this.location = window.location
+        this.location = window.location;
         this.href = window.location.href;
         this.domain = window.location.host;
         this.path = window.location.pathname;
@@ -198,7 +198,7 @@ class HistoryStack {
         let highlight = [/pant(ie|y)[^h]/i, /upskirt/i, /upshort/i, /\b(summer)?camp(ing|ers?)?\b/i, /\bwet/i, /\bpee/i, /\byt/i, /youtube/i, /\boops/i,
                         /hidden/i, /(web|spy|ip|security)cam/i, /cam(girl|whore|slut)s?/i, /\bspy/i];
 
-        let authorBlacklist = [/conrad052/i, /spyonboyz/i, /otismeyer/i, /dad3boys/i, /ducman4988/i]
+        let authorBlacklist = [/conrad052/i, /spyonboyz/i, /otismeyer/i, /dad3boys/i, /ducman4988/i]        
         let authorHighlight = [/pant(ie|y)[^h]/i, /upskirt/i]
 
         logMessage("Begin blacklisting")
@@ -256,7 +256,38 @@ class HistoryStack {
         anchorMoved=true;
     }
 
-    onkeydown = function(e){
+    if (loadedPage.isFaves) { // Save Favorite Users as Map in Local Storage
+        let favoriteUsers = {};
+        for (let a of document.getElementsByTagName("a")) {
+        if (a.href) {
+                let m = a.href.match(/https:\/\/imgsrc\.ru\/main\/user.php\?user=([\d\w-_.]+)/i);
+                if (m) {
+                    favoriteUsers[m[1]] = true;
+                }
+             }
+        }
+        window.localStorage["imgsrcFavoriteUsers"] = JSON.stringify(favoriteUsers);
+    }
+
+    if (loadedPage.isUserpage) { // Add "add [user] to faves" button
+        let favoriteUsers = window.localStorage["imgsrcFavoriteUsers"];
+        let userMatch = window.location.search.match(/user=([\d\w-_.]+)/);
+        if (favoriteUsers && userMatch) {
+            favoriteUsers = JSON.parse(favoriteUsers);
+            let username = userMatch[1];
+            let favestring
+            if (favoriteUsers[userMatch[1]]) {
+                favestring = `<p>You \u{2764} ${username}</p>`;
+            } else {
+                favestring = `<p><a href="https://imgsrc.ru/members/fav.php?action=add&user=${username}">` +
+                    `Add ${username} to \u{2764}</a></p>`;
+            }
+            let tdd = document.getElementsByClassName("tdd")[0]
+            tdd.insertAdjacentHTML('beforebegin', favestring)
+        }
+    }
+
+    onkeydown = function(e){ // Add keybindings
         let key = new KeyPressEvent(e);
         key.log()
         let page = new ImgsrcPage();
