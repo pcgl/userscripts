@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgsrc download
 // @namespace    lordlolicon
-// @version      2020.01.24
+// @version      2020.02.12
 // @description  Download imgsrc.ru with ctrl+D
 // @author       Anonymous
 // @match        http://imgsrc.ru/*
@@ -10,7 +10,7 @@
 // @downloadURL none
 // ==/UserScript==
 
-const imgsrcExtensionVersion = "2020.01.24a"
+const imgsrcExtensionVersion = "2020.02.12c"
 
 function logMessage(msg) {
     console.log(`${new Date().toLocaleTimeString('en-us', {hour12: false})}: ${msg}`)
@@ -43,6 +43,14 @@ class KeyPressEvent {
 
     isEnterKey() {
         return this.e.keyCode == 13
+    }
+
+    isNumKey() {
+        return this.e.key.match(/^\d$/)
+    }
+
+    isCtrlNum() {
+        return this.e.ctrlKey && this.e.key.match(/^\d$/)
     }
     
     log() {
@@ -94,6 +102,12 @@ class ImgsrcPage {
         } else if (this.path == "/main/login.php") {
             this.isTape = this.isLogin = true;
             this.name = "Login Prompt"
+        } else if (this.path == "/main/warn.php") {
+            this.isTape = this.isAgeCheck = true;
+            this.name = "Age Check"
+        } else if (this.path == "/main/passchk.php") {
+            this.isTape = this.isPassCheck = true;
+            this.name = "Album Password Check"
         }
     }
 
@@ -287,6 +301,40 @@ class HistoryStack {
         }
     }
 
+    if (loadedPage.isAgeCheck) {
+        window.location = window.location.href += "&iamlegal=yeah"
+    }
+
+    if (loadedPage.isPassCheck) {
+        loadedPage.passform = document.forms.passchk
+        let table = loadedPage.passform
+        while (table.tagName.toLowerCase() != "tbody") {
+            table = table.parentElement;
+        }
+        table.insertAdjacentHTML("beforeend", 
+            '<tr><td colspan="2"><div id="passbtns"></div></td></tr>'
+        )
+        let passbtns = document.getElementById("passbtns")
+        // eslint-disable-next-line no-unused-vars
+        let samplePasswords = [
+            {name: "EZ", pass: "12345"},
+            {name: "ZE", pass: "54321"},
+            {name: "EZE", pass: "123454321"},
+            {name: "EZZE", pass: "1234554321"},
+            {name: "EZ6", pass: "123456"}
+        ]
+        for (let i = 0; i < samplePasswords.length && i < 9; i++) {
+            let name = samplePasswords[i].name
+            let pass = samplePasswords[i].pass
+            passbtns.insertAdjacentHTML( "beforeend",
+                `<button pass="${pass}" num="${i+1}" title="${pass}" onclick="` +
+                `passchk = document.forms.passchk; ` +
+                `passchk.pwd.value='${pass}'; passchk.submit()` +
+                `">${i+1}: ${name}</button> `
+            )
+        }
+    }
+
     onkeydown = function(e){ // Add keybindings
         let key = new KeyPressEvent(e);
         key.log()
@@ -359,6 +407,15 @@ class HistoryStack {
             window.open(new HistoryStack().pop(), '_blank');
         } else if (key.is('ArrowRight')) {
             //?
+        } else if (key.isCtrlNum()) {
+            if (loadedPage.isPassCheck) {
+                try {
+                    document.querySelector(`#passbtns button[num="${e.key}"]`).click()
+                    e.preventDefault();
+                } catch (e) {
+                    console.error(e)
+                }
+            }
         }
     };
 
