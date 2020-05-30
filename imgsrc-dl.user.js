@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgsrc download
 // @namespace    lordlolicon
-// @version      2020.02.12
+// @version      2020.05.29
 // @description  Download imgsrc.ru with ctrl+D
 // @author       Anonymous
 // @match        http://imgsrc.ru/*
@@ -10,7 +10,7 @@
 // @downloadURL none
 // ==/UserScript==
 
-const imgsrcExtensionVersion = "2020.02.12c"
+const imgsrcExtensionVersion = "2020.05.29"
 
 function logMessage(msg) {
     console.log(`${new Date().toLocaleTimeString('en-us', {hour12: false})}: ${msg}`)
@@ -52,7 +52,7 @@ class KeyPressEvent {
     isCtrlNum() {
         return this.e.ctrlKey && this.e.key.match(/^\d$/)
     }
-    
+
     log() {
         console.log(
             `${new Date().toLocaleTimeString('en-us', {hour12: false})}: ` +
@@ -212,7 +212,7 @@ class HistoryStack {
         let highlight = [/pant(ie|y)[^h]/i, /upskirt/i, /upshort/i, /\b(summer)?camp(ing|ers?)?\b/i, /\bwet/i, /\bpee/i, /\byt/i, /youtube/i, /\boops/i,
                         /hidden/i, /(web|spy|ip|security)cam/i, /cam(girl|whore|slut)s?/i, /\bspy/i];
 
-        let authorBlacklist = [/conrad052/i, /spyonboyz/i, /otismeyer/i, /dad3boys/i, /ducman4988/i]        
+        let authorBlacklist = [/conrad052/i, /spyonboyz/i, /otismeyer/i, /dad3boys/i, /ducman4988/i]
         let authorHighlight = [/pant(ie|y)[^h]/i, /upskirt/i]
 
         logMessage("Begin blacklisting")
@@ -302,7 +302,11 @@ class HistoryStack {
     }
 
     if (loadedPage.isAgeCheck) {
-        window.location = window.location.href += "&iamlegal=yeah"
+        if (!window.location.search.match(/over18=yeah/i)) {
+            window.location = window.location.href += "&over18=yeah"
+        } else {
+            console.error("Tried to redirect to +=&over18=yeah when it already exists in URL");
+        }
     }
 
     if (loadedPage.isPassCheck) {
@@ -311,7 +315,7 @@ class HistoryStack {
         while (table.tagName.toLowerCase() != "tbody") {
             table = table.parentElement;
         }
-        table.insertAdjacentHTML("beforeend", 
+        table.insertAdjacentHTML("beforeend",
             '<tr><td colspan="2"><div id="passbtns"></div></td></tr>'
         )
         let passbtns = document.getElementById("passbtns")
