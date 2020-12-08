@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgsrc download
 // @namespace    lordlolicon
-// @version      2020.05.29
+// @version      2020.12.07.1
 // @description  Download imgsrc.ru with ctrl+D
 // @author       Anonymous
 // @match        http://imgsrc.ru/*
@@ -10,10 +10,10 @@
 // @downloadURL none
 // ==/UserScript==
 
-const imgsrcExtensionVersion = "2020.05.29"
+const imgsrcExtensionVersion = "2020.12.07a"
 
 function logMessage(msg) {
-    console.log(`${new Date().toLocaleTimeString('en-us', {hour12: false})}: ${msg}`)
+    console.log(`${new Date().toLocaleTimeString('en-us', { hour12: false })}: ${msg}`)
 }
 
 class KeyPressEvent {
@@ -42,28 +42,41 @@ class KeyPressEvent {
     }
 
     isEnterKey() {
-        return this.e.keyCode == 13
+        return this.e.keyCode == 13;
     }
 
     isNumKey() {
-        return this.e.key.match(/^\d$/)
+        return this.e.key.match(/^\d$/);
     }
 
     isCtrlNum() {
-        return this.e.ctrlKey && this.e.key.match(/^\d$/)
+        return this.e.ctrlKey && this.e.key.match(/^\d$/);
+    }
+
+    getKeyCombo() {
+        let keycombo = (this.e.ctrlKey && this.e.key != "Control" ? "Ctrl-" : "") +
+            (this.e.altKey && this.e.key != "Alt" ? "Alt-" : "") +
+            (this.e.shiftKey && this.e.key != "Shift" ? "Shift-" : "") +
+            this.e.key;
+        return keycombo;
     }
 
     log() {
-        console.log(
-            `${new Date().toLocaleTimeString('en-us', {hour12: false})}: ` +
-            `Pressed ${
-                this.e.ctrlKey && this.e.key!= "Control" ? "Ctrl-" : ""
-            }${
-                this.e.altKey && this.e.key != "Alt" ? "Alt-" : ""
-            }${
-                this.e.shiftKey && this.e.key != "Shift" ? "Shift-" : ""
-            }${this.e.key}`
-        )
+        logMessage("Pressed " + this.getKeyCombo());
+    }
+
+    blockUntil(ms) {
+        let keycombo = this.getKeyCombo();
+        if (window.keyPressBlocked == undefined) {
+            window.keyPressBlocked = {};
+        }
+        window.keyPressBlocked[keycombo] = true;
+        window.setTimeout(() => { window.keyPressBlocked[keycombo] = false }, ms);
+    }
+
+    isBlocked() {
+        let keycombo = this.getKeyCombo();
+        return window.keyPressBlocked && window.keyPressBlocked[keycombo];
     }
 }
 
@@ -74,9 +87,9 @@ class ImgsrcPage {
         this.domain = window.location.host;
         this.path = window.location.pathname;
         this.search = window.location.search;
-        this.id = window.location.hash.substring(1)
+        this.id = window.location.hash.substring(1);
 
-        if (this.path == "/main/search.php") {
+        if (this.path == "/main/search.php" || this.path.match("/cat/")) {
             if (this.search.match(/love=true/i)) {
                 this.isFaves = true;
                 this.name = "Favorites"
@@ -130,7 +143,7 @@ class ImgsrcPage {
             } else {
                 logMessage(`No img path defined for ${this.name}`);
             }
-        } catch(e) {
+        } catch (e) {
             logMessage("Error finding img");
             return;
         }
@@ -172,7 +185,7 @@ class HistoryStack {
     }
 }
 
-(function() {
+(function () {
     'use strict';
 
     if (window.imgsrcLoaded) {
@@ -185,7 +198,7 @@ class HistoryStack {
     console.log("Loaded extension version " + imgsrcExtensionVersion);
     let loadedPage = new ImgsrcPage();
     loadedPage.log();
-    var anchorMoved=false;
+    var anchorMoved = false;
 
     /* Make sure big images don't go off screen */
     document.head.innerHTML += "<style>img.big{max-height: 100vh !important}</style>"
@@ -210,15 +223,15 @@ class HistoryStack {
         let blacklist = [/boy'?s?z?\b/i, /\bbrother'?s?z?\b/i, /\bson'?s?\b/i, /\bnephew'?s?\b/i, /chubb(y|ie)/i, /\bfatt?(y|ie)s??\b/i]
         let whitelist = [/girl'?s?z?/i, /\bsister'?s?\b/i, /\bdau(ghter)?'?s?\b/i, /\bniece'?s?\b/i, /\bher'?s?\b/i, /pant(ie|y)/i, /upskirt/i]
         let highlight = [/pant(ie|y)[^h]/i, /upskirt/i, /upshort/i, /\b(summer)?camp(ing|ers?)?\b/i, /\bwet/i, /\bpee/i, /\byt/i, /youtube/i, /\boops/i,
-                        /hidden/i, /(web|spy|ip|security)cam/i, /cam(girl|whore|slut)s?/i, /\bspy/i];
+            /hidden/i, /(web|spy|ip|security)cam/i, /cam(girl|whore|slut)s?/i, /\bspy/i];
 
         let authorBlacklist = [/conrad052/i, /spyonboyz/i, /otismeyer/i, /dad3boys/i, /ducman4988/i]
         let authorHighlight = [/pant(ie|y)[^h]/i, /upskirt/i]
 
         logMessage("Begin blacklisting")
         for (let e of elems) {
-            let at = e.innerText.match(/([^:\s]+): (.*)/);
-            if (!at) {continue;}
+            let at = e.innerText.match(/([^:\s]+): (.*)/); // [match, author, title]
+            if (!at) { continue; }
             let author = at[1];
             let title = at[2];
             for (let b of blacklist) {
@@ -262,28 +275,30 @@ class HistoryStack {
 
     if (loadedPage.isViewAll) {
         console.log("setting IDs");
-        for (let anchor of document.querySelectorAll("a[id]")){
-            anchor.nextElementSibling.id=anchor.id
-            anchor.id=""
+        for (let anchor of document.querySelectorAll("a[id]")) {
+            anchor.nextElementSibling.id = anchor.id
+            anchor.id = ""
         }
         console.log("IDs set");
-        anchorMoved=true;
+        anchorMoved = true;
     }
 
     if (loadedPage.isFaves) { // Save Favorite Users as Map in Local Storage
         let favoriteUsers = {};
         for (let a of document.getElementsByTagName("a")) {
-        if (a.href) {
+            if (a.href) {
                 let m = a.href.match(/https:\/\/imgsrc\.ru\/main\/user.php\?user=([\d\w-_.]+)/i);
                 if (m) {
                     favoriteUsers[m[1]] = true;
                 }
-             }
+            }
         }
+        // eslint-disable-next-line dot-notation
         window.localStorage["imgsrcFavoriteUsers"] = JSON.stringify(favoriteUsers);
     }
 
     if (loadedPage.isUserpage) { // Add "add [user] to faves" button
+        // eslint-disable-next-line dot-notation
         let favoriteUsers = window.localStorage["imgsrcFavoriteUsers"];
         let userMatch = window.location.search.match(/user=([\d\w-_.]+)/);
         if (favoriteUsers && userMatch) {
@@ -319,40 +334,46 @@ class HistoryStack {
             '<tr><td colspan="2"><div id="passbtns"></div></td></tr>'
         )
         let passbtns = document.getElementById("passbtns")
-        // eslint-disable-next-line no-unused-vars
         let samplePasswords = [
-            {name: "EZ", pass: "12345"},
-            {name: "ZE", pass: "54321"},
-            {name: "EZE", pass: "123454321"},
-            {name: "EZZE", pass: "1234554321"},
-            {name: "EZ6", pass: "123456"}
+            { name: "EZ", pass: "12345" },
+            { name: "ZE", pass: "54321" },
+            { name: "EZE", pass: "123454321" },
+            { name: "EZZE", pass: "1234554321" },
+            { name: "EZ6", pass: "123456" }
         ]
         for (let i = 0; i < samplePasswords.length && i < 9; i++) {
             let name = samplePasswords[i].name
             let pass = samplePasswords[i].pass
-            passbtns.insertAdjacentHTML( "beforeend",
-                `<button pass="${pass}" num="${i+1}" title="${pass}" onclick="` +
+            passbtns.insertAdjacentHTML("beforeend",
+                `<button pass="${pass}" num="${i + 1}" title="${pass}" onclick="` +
                 `passchk = document.forms.passchk; ` +
                 `passchk.pwd.value='${pass}'; passchk.submit()` +
-                `">${i+1}: ${name}</button> `
+                `">${i + 1}: ${name}</button> `
             )
         }
     }
 
-    onkeydown = function(e){ // Add keybindings
+    /**** == Add keybindings == ****/
+    onkeydown = function (e) {
         let key = new KeyPressEvent(e);
+        if (key.isBlocked()) {
+            console.warn("Captured blocked keypress" + key.getKeyCombo())
+            return;
+        }
         key.log()
         let page = new ImgsrcPage();
-        // ^S or ^D
-        if(key.isCtrl('S') || key.isCtrl('D')){
+
+        /**** ^S or ^D ****/
+        if (key.isCtrl('S') || key.isCtrl('D')) {
             console.log("^S Captured")
+            key.blockUntil(300) // Prevent multiple keypresses from faulty mice
             let source;
-            let newWindow=true;
+            let newWindow = true;
             page.log()
 
-            source = page.getImgURL({anchorMoved: anchorMoved})
+            source = page.getImgURL({ anchorMoved: anchorMoved })
             if (page.isViewAll) {
-                //nothing to do
+                // leave newWindow = true
             } else if (page.isAlbum) {
                 if (!e.shiftKey) {
                     newWindow = false;
@@ -371,7 +392,7 @@ class HistoryStack {
                 }
             }
         }
-        // Enter Key
+        /**** Enter Key ****/
         else if (key.isEnterKey() || key.isSpaceKey()) {
             console.log("Enter Captured")
             let nextAnchor;
@@ -386,7 +407,7 @@ class HistoryStack {
                     } else {
                         nextAnchor = document.getElementsByClassName("big")[0].parentElement.href;
                     }
-                } catch(e) {
+                } catch (e) {
                     logMessage("Error finding img")
                     return;
                 }
@@ -404,14 +425,23 @@ class HistoryStack {
                 e.preventDefault();
                 window.location = nextAnchor;
             }
-        } else if (key.is('\\') || key.is('|')) { // "| \" key
+        }
+        /**** pipe key ****/
+        else if (key.is('\\') || key.is('|')) {
             e.preventDefault();
             window.history.back()
-        } else if (key.isCtrl("Z")) {
+        }
+        /**** ^Z ****/
+        else if (key.isCtrl("Z")) {
+            key.blockUntil(200)
             window.open(new HistoryStack().pop(), '_blank');
-        } else if (key.is('ArrowRight')) {
+        }
+        /**** => ****/
+        else if (key.is('ArrowRight')) {
             //?
-        } else if (key.isCtrlNum()) {
+        }
+        /**** ctrl + num ****/
+        else if (key.isCtrlNum()) {
             if (loadedPage.isPassCheck) {
                 try {
                     document.querySelector(`#passbtns button[num="${e.key}"]`).click()
@@ -428,7 +458,6 @@ class HistoryStack {
         if (!loadedPage.isLogin) {
             new HistoryStack().push()
         }
-        // Chrome requires returnValue to be set.
-        return null;
+        return null; // Chrome requires returnValue to be set.
     });
 })();
