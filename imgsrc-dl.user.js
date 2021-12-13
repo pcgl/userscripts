@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         imgsrc download
-// @namespace    lordlolicon
-// @version      2020.12.07.1
+// @namespace    http://imgsrc.ru/
+// @version      2020.12.12
 // @description  Download imgsrc.ru with ctrl+D
 // @author       Anonymous
 // @match        http://imgsrc.ru/*
@@ -132,17 +132,21 @@ class ImgsrcPage {
             anchorMoved = false
         }
         try {
+            let imgURL;
             if (this.isViewAll && this.id) {
                 if (anchorMoved) {
-                    return document.getElementById(this.id).getElementsByTagName("img")[0].src;
+                    imgURL = document.getElementById(this.id).getElementsByTagName("img")[0].src;
                 } else {
-                    return document.getElementById(this.id).nextElementSibling.getElementsByTagName("img")[0].src;
+                    imgURL = document.getElementById(this.id).nextElementSibling.getElementsByTagName("img")[0].src;
                 }
-            } else if (this.isViewAll || this.isAlbum) {
-                return document.getElementsByClassName("big")[0].src;
+            } else if (this.isViewAll) {
+                imgURL = document.getElementsByClassName("big")[0].src;
+            } else if (this.isAlbum) {
+                imgURL = document.getElementById("bpi").src;
             } else {
                 logMessage(`No img path defined for ${this.name}`);
             }
+            return imgURL.replace(/\.webp$/i, ".jpg")
         } catch (e) {
             logMessage("Error finding img");
             return;
